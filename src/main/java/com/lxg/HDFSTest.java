@@ -1,10 +1,7 @@
 package com.lxg;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
@@ -23,7 +20,7 @@ public class HDFSTest {
 
         String hdfsAddr =  "hdfs://" + clusterName;
 
-        conf.set("fs.defaultFS", hdfsAddr);
+       /* conf.set("fs.defaultFS", hdfsAddr);
         conf.set("dfs.nameservices", clusterName);
         conf.set("dfs.ha.namenodes." + clusterName, "nn1,nn2");
         conf.set("dfs.namenode.rpc-address." + clusterName+".nn1", nn1Addr);
@@ -34,39 +31,57 @@ public class HDFSTest {
 
         conf.set("hadoop.security.authentication", "Kerberos");
         UserGroupInformation.setConfiguration(conf);
-        UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");
+        UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");*/
 
 
         String master = args[0];
-        SparkSession sparkSession = SparkSession.builder()
-                .master(master)
-                .appName("xquery" + Math.random())
-                .config("spark.hadoop.yarn.resourcemanager.address", yarnResourceManager1)
-                .config("spark.hadoop.fs.defaultFS", clusterName)
-                //.config("spark.yarn.jars", yarnJars)
-                .config("spark.hadoop.dfs.nameservices", clusterName)
-                .config("spark.hadoop.dfs.ha.namenodes." + clusterName, "nn1, nn2")
-                .config("spark.hadoop.dfs.permissions", "false")
-                .config("spark.hadoop.dfs.namenode.rpc-address." + clusterName + ".nn1", nn1Addr)
-                .config("spark.hadoop.dfs.namenode.rpc-address." + clusterName + ".nn2", nn2Addr)
-                .config("spark.hadoop.dfs.client.failover.proxy.provider." + clusterName,
-                        "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider")
-                .config("spark.hadoop.fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
-                .config("spark.speculation", "false")
-                .config("spark.hadoop.mapreduce.map.speculative", "false")
-                .config("spark.hadoop.mapreduce.reduce.speculative", "false")
-                .getOrCreate();
+        SparkSession sparkSession = null;
+        if(master.equals("1")){
+            sparkSession = SparkSession.builder()
+                    .master("local[2]")
+                    .appName("xquery" + Math.random())
+                    .config("spark.hadoop.fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
+                    .config("spark.speculation", "false")
+                    .config("spark.hadoop.mapreduce.map.speculative", "false")
+                    .config("spark.hadoop.mapreduce.reduce.speculative", "false")
+                    .getOrCreate();
+            sparkSession.sparkContext().hadoopConfiguration().set("fs.defaultFS", hdfsAddr);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.nameservices", clusterName);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.ha.namenodes." + clusterName, "nn1,nn2");
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.namenode.rpc-address." + clusterName+".nn1", nn1Addr);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.namenode.rpc-address." + clusterName+".nn2", nn2Addr);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.client.failover.proxy.provider." + clusterName,
+                    "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.permissions","false");
+            sparkSession.sparkContext().hadoopConfiguration().set("hadoop.security.authentication", "Kerberos");
 
+            UserGroupInformation.setConfiguration(sparkSession.sparkContext().hadoopConfiguration());
+            UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");
+        }else{
+            sparkSession = SparkSession.builder()
+                    .master("yarn-client")
+                    .appName("xquery" + Math.random())
+                    .config("spark.yarn.keytab","/root/dfgx_test001.keytab")
+                    .config("spark.yarn.principal","dfgx_test001/bdoc@FJBDKDC")
+                    .config("spark.hadoop.yarn.resourcemanager.address", yarnResourceManager1)
+                    .config("spark.hadoop.fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem")
+                    .config("spark.speculation", "false")
+                    .config("spark.hadoop.mapreduce.map.speculative", "false")
+                    .config("spark.hadoop.mapreduce.reduce.speculative", "false")
+                    .getOrCreate();
+            sparkSession.sparkContext().hadoopConfiguration().set("fs.defaultFS", hdfsAddr);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.nameservices", clusterName);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.ha.namenodes." + clusterName, "nn1,nn2");
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.namenode.rpc-address." + clusterName+".nn1", nn1Addr);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.namenode.rpc-address." + clusterName+".nn2", nn2Addr);
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.client.failover.proxy.provider." + clusterName,
+                    "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+            sparkSession.sparkContext().hadoopConfiguration().set("dfs.permissions","false");
+            sparkSession.sparkContext().hadoopConfiguration().set("hadoop.security.authentication", "Kerberos");
 
-
-
-
-
-
-
-
-
-
+            UserGroupInformation.setConfiguration(sparkSession.sparkContext().hadoopConfiguration());
+            UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");
+        }
 
 
         System.out.println("开始读取本地文件！");
@@ -74,11 +89,11 @@ public class HDFSTest {
         System.out.println("本地文件读取完毕！");
         df.show();
         System.out.println("开始写入hdfs");
-        String path = "/user/data";
-        df.coalesce(1).write().option("header",false).mode(SaveMode.Overwrite).csv("/user/data");
-        System.out.println("写文件通过，写出路径为/user/data");
+        String path = hdfsAddr+"/user/data";
+        df.coalesce(1).write().option("header",false).mode(SaveMode.Overwrite).csv(path);
+        System.out.println("写文件通过，写出路径为:"+path);
         System.out.println("将写入的文件通过spark读取并显示");
-        sparkSession.read().option("header",false).csv("hdfsAddr"+path).show();
+        sparkSession.read().option("header",false).csv(path).show();
         sparkSession.stop();
 
     }
