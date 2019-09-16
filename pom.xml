@@ -21,7 +21,7 @@
         <netty.version>4.1.33.Final</netty.version>
         <janino.version>3.0.12</janino.version>
         <java.version>1.8</java.version>
-        <spark.version>2.4.0</spark.version>
+        <spark.version>1.6.2</spark.version>
         <hadoop.version>2.7.7</hadoop.version>
         <spark.scala.version>2.11</spark.scala.version>
         <platform.webservice.url>http://127.0.0.1:7080/dataplatform/services/MetaDataService?wsdl</platform.webservice.url>
@@ -87,6 +87,12 @@
                     <artifactId>jsp-api</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.databricks</groupId>
+            <artifactId>spark-csv_2.10</artifactId>
+            <version>1.4.0</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
