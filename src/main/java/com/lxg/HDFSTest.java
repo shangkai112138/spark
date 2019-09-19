@@ -2,10 +2,10 @@ package com.lxg;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.spark.SparkConf;
-import org.apache.spark.SparkContext;
-import org.apache.spark.sql.*;
-//import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
+import org.apache.spark.sql.SparkSession;
 
 import java.io.IOException;
 
@@ -20,15 +20,14 @@ public class HDFSTest {
 
     public static void main(String[] args) throws Exception {
 
-        if(args[0].equals("1")){//本地启动spark
+        /*if(args[0].equals("1")){//本地启动spark
             localSpark1_6();
         }else{
             yarnClientSpark();//yarn-client模式
-        }
+        }*/
 
-        //String hdfsAddr =  "hdfs://" + clusterName;
 
-       /* Configuration conf = new Configuration();
+        /*Configuration conf = new Configuration();
         conf.set("fs.defaultFS", hdfsAddr);
         conf.set("dfs.nameservices", clusterName);
         conf.set("dfs.ha.namenodes." + clusterName, "nn1,nn2");
@@ -43,9 +42,10 @@ public class HDFSTest {
         UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");*/
 
 
-        /*String master = args[0];
+        String master = args[0];
         SparkSession sparkSession = null;
-        if(master.equals("1")){
+        if(master.equals("local")){
+            System.out.println("local模式：");
             sparkSession = SparkSession.builder()
                     .master("local[2]")
                     .appName("xquery" + Math.random())
@@ -66,9 +66,26 @@ public class HDFSTest {
 
             UserGroupInformation.setConfiguration(sparkSession.sparkContext().hadoopConfiguration());
             UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");
+        }else if(master.equals("hdfs")){
+            Configuration conf = new Configuration();
+            conf.set("fs.defaultFS", hdfsAddr);
+            conf.set("dfs.nameservices", clusterName);
+            conf.set("dfs.ha.namenodes." + clusterName, "nn1,nn2");
+            conf.set("dfs.namenode.rpc-address." + clusterName+".nn1", nn1Addr);
+            conf.set("dfs.namenode.rpc-address." + clusterName+".nn2", nn2Addr);
+            conf.set("dfs.client.failover.proxy.provider." + clusterName,
+                    "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+            conf.set("dfs.permissions","false");
+
+            conf.set("hadoop.security.authentication", "Kerberos");
+            UserGroupInformation.setConfiguration(conf);
+            UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");
+            System.out.println("hdfs认证通过");
+
         }else{
+            System.out.println(master+"模式：");
             sparkSession = SparkSession.builder()
-                    .master("yarn-client")
+                    .master(master)
                     .appName("xquery" + Math.random())
                     .config("spark.yarn.keytab","/root/dfgx_test001.keytab")
                     .config("spark.yarn.principal","dfgx_test001/bdoc@FJBDKDC")
@@ -90,24 +107,23 @@ public class HDFSTest {
 
             UserGroupInformation.setConfiguration(sparkSession.sparkContext().hadoopConfiguration());
             UserGroupInformation.loginUserFromKeytab("dfgx_test001/bdoc@FJBDKDC","/root/dfgx_test001.keytab");
-        }*/
+        }
 
 
-        /*System.out.println("开始读取本地文件！");
-        Dataset<Row> df = sparkSession.read().option("header",true).csv("/root/data.csv");
-        System.out.println("本地文件读取完毕！");
+        System.out.println("开始读取hdfs文件并展示！");
+        Dataset<Row> df = sparkSession.read().option("header",true).csv("/user/data");
         df.show();
         System.out.println("开始写入hdfs");
-        String path = hdfsAddr+"/user/data";
+        String path = hdfsAddr+"/user/datacopy";
         df.coalesce(1).write().option("header",false).mode(SaveMode.Overwrite).csv(path);
         System.out.println("写文件通过，写出路径为:"+path);
         System.out.println("将写入的文件通过spark读取并显示");
         sparkSession.read().option("header",false).csv(path).show();
-        sparkSession.stop();*/
+        sparkSession.stop();
 
     }
 
-    static void localSpark1_6() throws IOException {
+    /*static void localSpark1_6() throws IOException {
         System.out.println("开始spark local模式");
         SparkConf sparkConf = new SparkConf();
         sparkConf.setMaster("local[2]").setAppName("xqueryTest")
@@ -184,5 +200,5 @@ public class HDFSTest {
                 .option("delimiter",",")//默认以","分割
                 .save("/user/datacopy");
         sparkContext.stop();
-    }
+    }*/
 }
